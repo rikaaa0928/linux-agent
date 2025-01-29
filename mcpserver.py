@@ -1,12 +1,15 @@
-from mcp.server.lowlevel import Server, NotificationOptions
-from mcp.server.models import InitializationOptions
-import mcp.server.stdio
+from time import sleep
+
+from mcp.server.lowlevel import Server
+from mcp.server.sse import SseServerTransport
+from starlette.applications import Starlette
+from starlette.routing import Mount, Route
 import mcp.types as types
-import asyncio
-import requests
+
+from linuxserver import linux_automation
 
 app = Server("linux-agent")
-LINUX_SERVER_URL = "http://127.0.0.1:5001"
+
 
 @app.list_tools()
 async def handle_list_prompts() -> list[types.Tool]:
@@ -79,17 +82,20 @@ async def handle_list_prompts() -> list[types.Tool]:
                 },
                 "required": ["text"]
             }
-        )
+        ),
+        types.Tool(
+            name="ping",
+            description="ping",
+            inputSchema={"type": "object"}
+        ),
     ]
 
+
 @app.call_tool()
-async def call_tool(name: str, arguments: dict) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+async def call_tool(name: str, arguments: dict) -> list[
+    types.TextContent | types.ImageContent | types.EmbeddedResource]:
     if name == "capture_screen":
-        response = requests.get(f"{LINUX_SERVER_URL}/capture_screen")
-        response.raise_for_status()
-        data = response.json()
-        base64_str = data["data"]
-        mime_type = data["mime_type"]
+        base64_str, mime_type = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
@@ -98,53 +104,129 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
     elif name == "move_mouse_to":
         x = arguments["x"]
         y = arguments["y"]
-        response = requests.post(f"{LINUX_SERVER_URL}/move_mouse_to", json={"x": x, "y": y})
-        response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        linux_automation.move_mouse_to(x, y)
+        base64_str, mime_type = linux_automation.capture_fullscreen_jpg_base64()
+        return [types.ImageContent(
+            type="image",
+            mimeType=mime_type,
+            data=base64_str
+        )]
     elif name == "mouse_click":
-        response = requests.get(f"{LINUX_SERVER_URL}/mouse_click")
-        response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        linux_automation.mouse_click()
+        sleep(1)
+        base64_str, mime_type = linux_automation.capture_fullscreen_jpg_base64()
+        return [types.ImageContent(
+            type="image",
+            mimeType=mime_type,
+            data=base64_str
+        )]
     elif name == "mouse_leftClick":
-        response = requests.get(f"{LINUX_SERVER_URL}/mouse_leftClick")
-        response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        linux_automation.mouse_leftClick()
+        sleep(1)
+        base64_str, mime_type = linux_automation.capture_fullscreen_jpg_base64()
+        return [types.ImageContent(
+            type="image",
+            mimeType=mime_type,
+            data=base64_str
+        )]
     elif name == "mouse_doubleClick":
-        response = requests.get(f"{LINUX_SERVER_URL}/mouse_doubleClick")
-        response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        linux_automation.mouse_doubleClick()
+        sleep(1)
+        base64_str, mime_type = linux_automation.capture_fullscreen_jpg_base64()
+        return [types.ImageContent(
+            type="image",
+            mimeType=mime_type,
+            data=base64_str
+        )]
     elif name == "keyboard_input_key":
         key = arguments["key"]
-        response = requests.post(f"{LINUX_SERVER_URL}/keyboard_input_key", json={"key": key})
-        response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        linux_automation.keyboard_input_key(key)
+        sleep(1)
+        base64_str, mime_type = linux_automation.capture_fullscreen_jpg_base64()
+        return [types.ImageContent(
+            type="image",
+            mimeType=mime_type,
+            data=base64_str
+        )]
     elif name == "keyboard_input_hotkey":
         keys = arguments["keys"]
-        response = requests.post(f"{LINUX_SERVER_URL}/keyboard_input_hotkey", json={"keys": keys})
-        response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        linux_automation.keyboard_input_hotkey(keys)
+        sleep(1)
+        base64_str, mime_type = linux_automation.capture_fullscreen_jpg_base64()
+        return [types.ImageContent(
+            type="image",
+            mimeType=mime_type,
+            data=base64_str
+        )]
     elif name == "keyboard_input_string":
         text = arguments["text"]
-        response = requests.post(f"{LINUX_SERVER_URL}/keyboard_input_string", json={"text": text})
-        response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        linux_automation.keyboard_input_string(text)
+        sleep(1)
+        base64_str, mime_type = linux_automation.capture_fullscreen_jpg_base64()
+        return [types.ImageContent(
+            type="image",
+            mimeType=mime_type,
+            data=base64_str
+        )]
+    elif name == "ping":
+        return [types.TextContent(
+            type="text",
+            text="pong",
+        )]
     else:
         raise ValueError(f"Tool not found: {name}")
 
-async def run():
-    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="linux-agent",
-                server_version="0.1.0",
-                capabilities=app.get_capabilities(
-                    notification_options=NotificationOptions(),
-                    experimental_capabilities={},
-                )
-            )
-        )
+
 
 if __name__ == "__main__":
-    asyncio.run(run())
+    sse = SseServerTransport("/messages/")
+
+
+    async def handle_sse(request):
+        async with sse.connect_sse(
+                request.scope, request.receive, request._send
+        ) as streams:
+            await app.run(
+                streams[0], streams[1], app.create_initialization_options()
+            )
+
+
+    # Create Starlette routes for SSE and message handling
+    routes = [
+        Route("/sse", endpoint=handle_sse),
+        Mount("/messages/", app=sse.handle_post_message),
+    ]
+
+
+    # Define handler functions
+    async def handle_sse(request):
+        async with sse.connect_sse(
+                request.scope, request.receive, request._send
+        ) as streams:
+            await app.run(
+                streams[0], streams[1], app.create_initialization_options()
+            )
+
+
+    starlette_app = Starlette(routes=routes)
+    from starlette.middleware.cors import CORSMiddleware
+
+    origins = [
+        "http://localhost",  # 允许来自 localhost 的跨域请求
+        "http://localhost:1420",  # 允许来自 localhost 的跨域请求
+        "http://127.0.0.1",  # 允许来自 127.0.0.1 的跨域请求
+        "http://127.0.0.1:1420",  # 允许来自 yourdomain.com 的跨域请求
+    ]
+
+    starlette_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,  # 允许携带 cookie
+        allow_methods=["*"],  # 允许所有 HTTP 方法
+        allow_headers=["*"],  # 允许所有 HTTP header
+    )
+    # Create and run Starlette app
+
+    import uvicorn
+
+    uvicorn.run(starlette_app, host="0.0.0.0", port=54321)
