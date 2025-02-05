@@ -12,3 +12,4 @@ wheels/
 *.jpg
 .idea
 .vscode
+test.py

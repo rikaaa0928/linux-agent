@@ -14,13 +14,13 @@ class LinuxAutomation:
         screenshot = pyautogui.screenshot()
         mouse_x, mouse_y = pyautogui.position()
         draw = ImageDraw.Draw(screenshot)
-        draw.ellipse((mouse_x - 15, mouse_y - 15, mouse_x + 15, mouse_y + 15), fill='red')
+        draw.ellipse((mouse_x - 7, mouse_y - 7, mouse_x + 7, mouse_y + 7), fill='yellow')
         img_byte_arr = BytesIO()
         screenshot.save(img_byte_arr, format='JPEG')
         img_byte_arr = img_byte_arr.getvalue()
         base64_str = base64.b64encode(img_byte_arr).decode('utf-8')
         mime_type = "image/jpeg"
-        return base64_str, mime_type
+        return base64_str, mime_type, (mouse_x, mouse_y)
 
     def move_mouse_to(self, x, y):
         """
