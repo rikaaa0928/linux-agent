@@ -6,7 +6,9 @@ from starlette.applications import Starlette
 from starlette.routing import Mount, Route
 import mcp.types as types
 
-from linuxserver import linux_automation
+from linux import LinuxAutomation
+
+linux_automation = LinuxAutomation()
 
 app = Server("linux-agent")
 
@@ -59,7 +61,7 @@ async def handle_list_prompts() -> list[types.Tool]:
         ),
         types.Tool(
             name="keyboard_input_hotkey",
-            description="模拟键盘输入一个组合key",
+            description="模拟键盘输入一个组合key，所有值请使用小写，如'ctrl', 'shift', 'alt'",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -106,73 +108,73 @@ async def handle_list_prompts() -> list[types.Tool]:
 async def call_tool(name: str, arguments: dict) -> list[
     types.TextContent | types.ImageContent | types.EmbeddedResource]:
     if name == "capture_screen":
-        base64_str, mime_type, (mouse_x, mouse_y) = linux_automation.capture_fullscreen_jpg_base64()
+        base64_str, mime_type, (mouse_x, mouse_y), (width, height) = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
             data=base64_str
-        ),types.TextContent(
+        ), types.TextContent(
             type="text",
-            text="当前鼠标指针（黄色圆点）位置({},{})".format(mouse_x, mouse_y),
+            text="当前鼠标指针（黄色圆点）位置({},{})\n当前屏幕分辨率({} x {})".format(mouse_x, mouse_y, width, height),
         )]
     elif name == "move_mouse_to":
         x = arguments["x"]
         y = arguments["y"]
         linux_automation.move_mouse_to(x, y)
-        base64_str, mime_type, (mouse_x, mouse_y) = linux_automation.capture_fullscreen_jpg_base64()
+        base64_str, mime_type, (mouse_x, mouse_y), (width, height) = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
             data=base64_str
-        ),types.TextContent(
+        ), types.TextContent(
             type="text",
-            text="当前鼠标指针（黄色圆点）位置({},{})".format(mouse_x, mouse_y),
-        ),types.TextContent(
+            text="当前鼠标指针（黄色圆点）位置({},{})\n当前屏幕分辨率({} x {})".format(mouse_x, mouse_y, width, height),
+        ), types.TextContent(
             type="text",
             text="请确认鼠标指针（黄色圆点）位置是否符合预期，否则请继续调整",
         )]
     elif name == "mouse_click":
         linux_automation.mouse_click()
         sleep(1)
-        base64_str, mime_type, (mouse_x, mouse_y) = linux_automation.capture_fullscreen_jpg_base64()
+        base64_str, mime_type, (mouse_x, mouse_y), (width, height) = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
             data=base64_str
-        ),types.TextContent(
+        ), types.TextContent(
             type="text",
-            text="当前鼠标指针（黄色圆点）位置({},{})".format(mouse_x, mouse_y),
-        ),types.TextContent(
+            text="当前鼠标指针（黄色圆点）位置({},{})\n当前屏幕分辨率({} x {})".format(mouse_x, mouse_y, width, height),
+        ), types.TextContent(
             type="text",
             text="请确认是否点击成功，是否需要等待",
         )]
     elif name == "mouse_leftClick":
         linux_automation.mouse_leftClick()
         sleep(1)
-        base64_str, mime_type, (mouse_x, mouse_y) = linux_automation.capture_fullscreen_jpg_base64()
+        base64_str, mime_type, (mouse_x, mouse_y), (width, height) = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
             data=base64_str
-        ),types.TextContent(
+        ), types.TextContent(
             type="text",
-            text="当前鼠标指针（黄色圆点）位置({},{})".format(mouse_x, mouse_y),
-        ),types.TextContent(
+            text="当前鼠标指针（黄色圆点）位置({},{})\n当前屏幕分辨率({} x {})".format(mouse_x, mouse_y, width, height),
+        ), types.TextContent(
             type="text",
             text="请确认是否点击成功，是否需要等待",
         )]
     elif name == "mouse_doubleClick":
         linux_automation.mouse_doubleClick()
         sleep(1)
-        base64_str, mime_type, (mouse_x, mouse_y) = linux_automation.capture_fullscreen_jpg_base64()
+        base64_str, mime_type, (mouse_x, mouse_y), (width, height) = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
             data=base64_str
-        ),types.TextContent(
+        ), types.TextContent(
             type="text",
-            text="当前鼠标指针（黄色圆点）位置({},{})".format(mouse_x, mouse_y),
-        ),types.TextContent(
+            text="当前鼠标指针（黄色圆点）位置({},{})\n当前屏幕分辨率({} x {})".format(mouse_x, mouse_y, width, height),
+        ), types.TextContent(
             type="text",
             text="请确认是否点击成功，是否需要等待",
         )]
@@ -180,15 +182,15 @@ async def call_tool(name: str, arguments: dict) -> list[
         key = arguments["key"]
         linux_automation.keyboard_input_key(key)
         sleep(1)
-        base64_str, mime_type, (mouse_x, mouse_y) = linux_automation.capture_fullscreen_jpg_base64()
+        base64_str, mime_type, (mouse_x, mouse_y), (width, height) = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
             data=base64_str
-        ),types.TextContent(
+        ), types.TextContent(
             type="text",
-            text="当前鼠标指针（黄色圆点）位置({},{})".format(mouse_x, mouse_y),
-        ),types.TextContent(
+            text="当前鼠标指针（黄色圆点）位置({},{})\n当前屏幕分辨率({} x {})".format(mouse_x, mouse_y, width, height),
+        ), types.TextContent(
             type="text",
             text="请确认是否输入成功，是否需要等待",
         )]
@@ -196,15 +198,15 @@ async def call_tool(name: str, arguments: dict) -> list[
         keys = arguments["keys"]
         linux_automation.keyboard_input_hotkey(keys)
         sleep(1)
-        base64_str, mime_type, (mouse_x, mouse_y) = linux_automation.capture_fullscreen_jpg_base64()
+        base64_str, mime_type, (mouse_x, mouse_y), (width, height) = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
             data=base64_str
-        ),types.TextContent(
+        ), types.TextContent(
             type="text",
-            text="当前鼠标指针（黄色圆点）位置({},{})".format(mouse_x, mouse_y),
-        ),types.TextContent(
+            text="当前鼠标指针（黄色圆点）位置({},{})\n当前屏幕分辨率({} x {})".format(mouse_x, mouse_y, width, height),
+        ), types.TextContent(
             type="text",
             text="请确认是否输入成功，是否需要等待",
         )]
@@ -212,15 +214,15 @@ async def call_tool(name: str, arguments: dict) -> list[
         text = arguments["text"]
         linux_automation.keyboard_input_string(text)
         sleep(1)
-        base64_str, mime_type, (mouse_x, mouse_y) = linux_automation.capture_fullscreen_jpg_base64()
+        base64_str, mime_type, (mouse_x, mouse_y), (width, height) = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
             data=base64_str
-        ),types.TextContent(
+        ), types.TextContent(
             type="text",
-            text="当前鼠标指针（黄色圆点）位置({},{})".format(mouse_x, mouse_y),
-        ),types.TextContent(
+            text="当前鼠标指针（黄色圆点）位置({},{})\n当前屏幕分辨率({} x {})".format(mouse_x, mouse_y, width, height),
+        ), types.TextContent(
             type="text",
             text="请确认是否输入成功",
         )]
@@ -232,21 +234,20 @@ async def call_tool(name: str, arguments: dict) -> list[
     elif name == "wait":
         duration = arguments["duration"]
         sleep(duration)
-        base64_str, mime_type, (mouse_x, mouse_y) = linux_automation.capture_fullscreen_jpg_base64()
+        base64_str, mime_type, (mouse_x, mouse_y), (width, height) = linux_automation.capture_fullscreen_jpg_base64()
         return [types.ImageContent(
             type="image",
             mimeType=mime_type,
             data=base64_str
-        ),types.TextContent(
+        ), types.TextContent(
             type="text",
-            text="当前鼠标指针（黄色圆点）位置({},{})".format(mouse_x, mouse_y),
-        ),types.TextContent(
+            text="当前鼠标指针（黄色圆点）位置({},{})\n当前屏幕分辨率({} x {})".format(mouse_x, mouse_y, width, height),
+        ), types.TextContent(
             type="text",
             text="请确认等待的资源是否正确加载，是否加载完成",
         )]
     else:
         raise ValueError(f"Tool not found: {name}")
-
 
 
 if __name__ == "__main__":
@@ -268,7 +269,6 @@ if __name__ == "__main__":
         Mount("/messages/", app=sse.handle_post_message),
     ]
 
-
     # # Define handler functions
     # async def handle_sse(request):
     #     async with sse.connect_sse(
@@ -277,7 +277,6 @@ if __name__ == "__main__":
     #         await app.run(
     #             streams[0], streams[1], app.create_initialization_options()
     #         )
-
 
     starlette_app = Starlette(routes=routes)
     from starlette.middleware.cors import CORSMiddleware

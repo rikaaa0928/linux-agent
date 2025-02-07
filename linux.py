@@ -3,6 +3,7 @@ import base64
 from io import BytesIO
 from PIL import ImageDraw
 
+
 class LinuxAutomation:
     def __init__(self):
         pass
@@ -20,7 +21,12 @@ class LinuxAutomation:
         img_byte_arr = img_byte_arr.getvalue()
         base64_str = base64.b64encode(img_byte_arr).decode('utf-8')
         mime_type = "image/jpeg"
-        return base64_str, mime_type, (mouse_x, mouse_y)
+        width, height = pyautogui.size()
+        return base64_str, mime_type, (mouse_x, mouse_y), (width, height)
+
+    def mouse_pos(self):
+        mouse_x, mouse_y = pyautogui.position()
+        return (mouse_x, mouse_y)
 
     def move_mouse_to(self, x, y):
         """
@@ -33,13 +39,13 @@ class LinuxAutomation:
         模拟鼠标点击
         """
         pyautogui.click()
-    
+
     def mouse_leftClick(self):
         """
         模拟鼠标点击
         """
         pyautogui.leftClick()
-        
+
     def mouse_doubleClick(self):
         """
         模拟鼠标点击
@@ -64,6 +70,7 @@ class LinuxAutomation:
         """
         pyautogui.typewrite(text)
 
+
 if __name__ == '__main__':
     automation = LinuxAutomation()
 
@@ -79,4 +86,4 @@ if __name__ == '__main__':
     # 示例：键盘输入
     automation.keyboard_input_string("Hello, Linux!")
     automation.keyboard_input_key('enter')
-    automation.keyboard_input_hotkey(['ctrl', 'shift', 'esc']) # 打开任务管理器 (示例组合键)
+    automation.keyboard_input_hotkey(['ctrl', 'shift', 'esc'])  # 打开任务管理器 (示例组合键)
