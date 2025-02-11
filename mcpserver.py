@@ -1,3 +1,4 @@
+from time import sleep
 from mcp.server.lowlevel import Server, NotificationOptions
 from mcp.server.models import InitializationOptions
 import mcp.server.stdio
@@ -79,6 +80,39 @@ async def handle_list_prompts() -> list[types.Tool]:
                 },
                 "required": ["text"]
             }
+        ),
+         types.Tool(
+                name="execute_command",
+                description="执行控制台命令并返回所有标准输出和标准错误",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "command": {"type": "string", "description": "要执行的命令"},
+                    },
+                    "required": ["command"]
+                }
+            ),
+        types.Tool(
+            name="execute_command_non_blocking",
+            description="执行控制台命令但不等待并返回输出",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "要执行的命令"},
+                },
+                "required": ["command"]
+            }
+        ),
+         types.Tool(
+            name="wait",
+            description="等待一段时间",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "duration": {"type": "number", "description": "等待的时间(秒)"},
+                },
+                "required": ["duration"]
+            }
         )
     ]
 
@@ -90,44 +124,124 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
         data = response.json()
         base64_str = data["data"]
         mime_type = data["mime_type"]
-        return [types.ImageContent(
-            type="image",
-            mimeType=mime_type,
-            data=base64_str
-        )]
+        description = data["description"]
+        return [
+            types.TextContent(
+                type="text",
+                text=description
+            ),
+            types.ImageContent(
+                type="image",
+                mimeType=mime_type,
+                data=base64_str
+            )
+        ]
     elif name == "move_mouse_to":
         x = arguments["x"]
         y = arguments["y"]
         response = requests.post(f"{LINUX_SERVER_URL}/move_mouse_to", json={"x": x, "y": y})
         response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        data = response.json()
+        return [
+                        types.TextContent(type="text", text=data["description"]),
+            types.TextContent(type="text", text=data["question"]),
+            types.ImageContent(type="image", mimeType=data["mime_type"], data=data["data"]),
+        ]
     elif name == "mouse_click":
         response = requests.get(f"{LINUX_SERVER_URL}/mouse_click")
         response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        data = response.json()
+        return [
+            types.ImageContent(type="image", mimeType=data["mime_type"], data=data["data"]),
+            types.TextContent(type="text", text=data["description"]),
+            types.TextContent(type="text", text=data["question"]),
+        ]
     elif name == "mouse_leftClick":
         response = requests.get(f"{LINUX_SERVER_URL}/mouse_leftClick")
         response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        data = response.json()
+        return [
+            types.ImageContent(type="image", mimeType=data["mime_type"], data=data["data"]),
+            types.TextContent(type="text", text=data["description"]),
+            types.TextContent(type="text", text=data["question"]),
+        ]
     elif name == "mouse_doubleClick":
         response = requests.get(f"{LINUX_SERVER_URL}/mouse_doubleClick")
         response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        data = response.json()
+        return [
+            types.ImageContent(type="image", mimeType=data["mime_type"], data=data["data"]),
+            types.TextContent(type="text", text=data["description"]),
+            types.TextContent(type="text", text=data["question"]),
+        ]
     elif name == "keyboard_input_key":
         key = arguments["key"]
         response = requests.post(f"{LINUX_SERVER_URL}/keyboard_input_key", json={"key": key})
         response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        data = response.json()
+        return [
+            types.ImageContent(type="image", mimeType=data["mime_type"], data=data["data"]),
+            types.TextContent(type="text", text=data["description"]),
+            types.TextContent(type="text", text=data["question"]),
+        ]
     elif name == "keyboard_input_hotkey":
         keys = arguments["keys"]
         response = requests.post(f"{LINUX_SERVER_URL}/keyboard_input_hotkey", json={"keys": keys})
         response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        data = response.json()
+        return [
+            types.ImageContent(type="image", mimeType=data["mime_type"], data=data["data"]),
+            types.TextContent(type="text", text=data["description"]),
+            types.TextContent(type="text", text=data["question"]),
+        ]
     elif name == "keyboard_input_string":
         text = arguments["text"]
         response = requests.post(f"{LINUX_SERVER_URL}/keyboard_input_string", json={"text": text})
         response.raise_for_status()
-        return [types.TextContent(type="text", text="success")]
+        data = response.json()
+        return [
+            types.ImageContent(type="image", mimeType=data["mime_type"], data=data["data"]),
+            types.TextContent(type="text", text=data["description"]),
+            types.TextContent(type="text", text=data["question"]),
+        ]
+    elif name == "execute_command":
+        command = arguments["command"]
+        response = requests.post(f"{LINUX_SERVER_URL}/execute_command", json={"command": command})
+        response.raise_for_status()
+        data = response.json()
+        output = data["output"]
+        return [
+            types.TextContent(type="text", text=output),
+        ]
+    elif name == "execute_command_non_blocking":
+        command = arguments["command"]
+        response = requests.post(f"{LINUX_SERVER_URL}/execute_command_non_blocking", json={"command": command})
+        response.raise_for_status()
+        data = response.json()
+        output = data["output"]
+        return [
+            types.TextContent(type="text", text=output),
+        ]
+    elif name == "wait":
+        duration = arguments["duration"]
+        sleep(duration)
+        response = requests.get(f"{LINUX_SERVER_URL}/capture_screen")
+        response.raise_for_status()
+        data = response.json()
+        base64_str = data["data"]
+        mime_type = data["mime_type"]
+        description = data["description"]
+        return [
+            types.TextContent(
+                type="text",
+                text=description
+            ),
+            types.ImageContent(
+                type="image",
+                mimeType=mime_type,
+                data=base64_str
+            )
+        ]
     else:
         raise ValueError(f"Tool not found: {name}")
 
