@@ -5,9 +5,11 @@ import mcp.server.stdio
 import mcp.types as types
 import asyncio
 import requests
+import os
+import llm
 
 app = Server("linux-agent")
-LINUX_SERVER_URL = "http://127.0.0.1:5001"
+LINUX_SERVER_URL = "http://192.168.102.136:5001"
 
 @app.list_tools()
 async def handle_list_prompts() -> list[types.Tool]:
@@ -18,31 +20,37 @@ async def handle_list_prompts() -> list[types.Tool]:
             inputSchema={"type": "object"}
         ),
         types.Tool(
-            name="move_mouse_to",
-            description="模拟移动鼠标到指定位置",
+            name="mouse_click",
+            description="模拟鼠标点击",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "x": {"type": "integer", "description": "X 坐标"},
-                    "y": {"type": "integer", "description": "Y 坐标"},
+                    "object_description": {"type": "string", "description": "图像中对象的描述。必须是一个明确，准确且唯一的位置描述，不能有任何可能在识别过程中造成歧义的内容"},
                 },
-                "required": ["x", "y"]
+                "required": ["object_description"]
             }
-        ),
-        types.Tool(
-            name="mouse_click",
-            description="模拟鼠标点击",
-            inputSchema={"type": "object"}
         ),
         types.Tool(
             name="mouse_leftClick",
             description="模拟鼠标左键点击",
-            inputSchema={"type": "object"}
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "object_description": {"type": "string", "description": "图像中对象的描述。必须是一个明确，准确且唯一的位置描述，不能有任何可能在识别过程中造成歧义的内容"},
+                },
+                "required": ["object_description"]
+            }
         ),
         types.Tool(
             name="mouse_doubleClick",
             description="模拟鼠标双击",
-            inputSchema={"type": "object"}
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "object_description": {"type": "string", "description": "图像中对象的描述。必须是一个明确，准确且唯一的位置描述，不能有任何可能在识别过程中造成歧义的内容"},
+                },
+                "required": ["object_description"]
+            }
         ),
         types.Tool(
             name="keyboard_input_key",
@@ -136,19 +144,22 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
                 data=base64_str
             )
         ]
-    elif name == "move_mouse_to":
-        x = arguments["x"]
-        y = arguments["y"]
-        response = requests.post(f"{LINUX_SERVER_URL}/move_mouse_to", json={"x": x, "y": y})
-        response.raise_for_status()
-        data = response.json()
-        return [
-                        types.TextContent(type="text", text=data["description"]),
-            types.TextContent(type="text", text=data["question"]),
-            types.ImageContent(type="image", mimeType=data["mime_type"], data=data["data"]),
-        ]
     elif name == "mouse_click":
-        response = requests.get(f"{LINUX_SERVER_URL}/mouse_click")
+        object_description = arguments["object_description"]
+        capture_response = requests.get(f"{LINUX_SERVER_URL}/capture_screen")
+        capture_response.raise_for_status()
+        capture_data = capture_response.json()
+        base64_str = capture_data["data"]
+        mime_type = capture_data["mime_type"]
+        x, y = llm.get_object_location(base64_str, mime_type, object_description)
+        if x is not None and y is not None:
+            requests.post(f"{LINUX_SERVER_URL}/move_mouse_to", json={"x": x, "y": y})
+        elif x is not None:
+            return [
+                types.TextContent(type="text", text=x),
+            ]
+        
+        response = requests.get(f"{LINUX_SERVER_URL}/mouse_click", params={"object_description": object_description})
         response.raise_for_status()
         data = response.json()
         return [
@@ -157,7 +168,21 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
             types.TextContent(type="text", text=data["question"]),
         ]
     elif name == "mouse_leftClick":
-        response = requests.get(f"{LINUX_SERVER_URL}/mouse_leftClick")
+        object_description = arguments["object_description"]
+        capture_response = requests.get(f"{LINUX_SERVER_URL}/capture_screen")
+        capture_response.raise_for_status()
+        capture_data = capture_response.json()
+        base64_str = capture_data["data"]
+        mime_type = capture_data["mime_type"]
+        x, y = llm.get_object_location(base64_str, mime_type, object_description)
+        if x is not None and y is not None:
+            requests.post(f"{LINUX_SERVER_URL}/move_mouse_to", json={"x": x, "y": y})
+        elif x is not None:
+            return [
+                types.TextContent(type="text", text=x),
+            ]
+
+        response = requests.get(f"{LINUX_SERVER_URL}/mouse_leftClick", params={"object_description": object_description})
         response.raise_for_status()
         data = response.json()
         return [
@@ -166,7 +191,21 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
             types.TextContent(type="text", text=data["question"]),
         ]
     elif name == "mouse_doubleClick":
-        response = requests.get(f"{LINUX_SERVER_URL}/mouse_doubleClick")
+        object_description = arguments["object_description"]
+        capture_response = requests.get(f"{LINUX_SERVER_URL}/capture_screen")
+        capture_response.raise_for_status()
+        capture_data = capture_response.json()
+        base64_str = capture_data["data"]
+        mime_type = capture_data["mime_type"]
+        x, y = llm.get_object_location(base64_str, mime_type, object_description)
+        if x is not None and y is not None:
+            requests.post(f"{LINUX_SERVER_URL}/move_mouse_to", json={"x": x, "y": y})
+        elif x is not None:
+            return [
+                types.TextContent(type="text", text=x),
+            ]
+
+        response = requests.get(f"{LINUX_SERVER_URL}/mouse_doubleClick", params={"object_description": object_description})
         response.raise_for_status()
         data = response.json()
         return [

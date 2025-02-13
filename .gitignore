@@ -11,3 +11,6 @@ wheels/
 .venv
 *.png
 *.jpg
+test.py
+move.py
+*.sh

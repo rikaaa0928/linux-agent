@@ -4,11 +4,9 @@ import io
 import os
 import json
 import datetime
-print(os.getenv("OPENAI_API_URL"))
-print(os.getenv("OPENAI_API_KEY"))
+
 client = openai.OpenAI(
-  base_url=os.getenv("OPENAI_API_URL"),
-  api_key=os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_API_URL"), api_key=os.getenv("OPENAI_API_KEY")
 )
 
 # 从环境变量读取日志文件路径
@@ -40,7 +38,10 @@ def get_object_location(image_base64: str, mime_type:str, object_description: st
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": f"请从图片中找到如下对象的位置: {object_description}. 请定位到对象的中心位置. 请返回包含'x','y'两个key的json格式结果. 比如: {{\"x\": 100, \"y\": 200}} . 如果有任何异常情况，比如找不到对象，或描述有歧义，无法定位到唯一结果，请返回包含'error' key的json结果, 例如: {{\"error\":\"你的反馈\"}}" },
+                    {
+                        "type": "text",
+                        "text": f"请从图片中找到如下对象的位置: {object_description}。请定位到对象的中心位置。如果有任何异常情况，请使用error函数进行反馈",
+                    },
                     {
                         "type": "image_url",
                         "image_url": {"url": f"data:{mime_type};base64,{image_base64}"},
@@ -53,17 +54,41 @@ def get_object_location(image_base64: str, mime_type:str, object_description: st
             "request": messages,
         }
         log_to_file(log_data)
-        # print("req")
         # 调用 OpenAI API
         response = client.chat.completions.create(
             model="anthropic/claude-3.5-sonnet",
             messages=messages,
+            functions=[
+                {
+                    "name": "setPosition",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "x": {"type": "integer"},
+                            "y": {"type": "integer"},
+                            "thinking": {"type": "string"},
+                        },
+                        "required": ["x", "y"],
+                    },
+                    "description": "设置鼠标的位置",
+                },
+                {
+                    "name": "error",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"text": {"type": "string"}},
+                        "required": ["text"],
+                    },
+                    "description": "返回错误信息",
+                },
+            ],
             # max_tokens=100,  # 限制响应长度
         )
+
         # print(response)
         # 提取响应内容
-        response_content = response.choices[0].message.content
-        #print(response_content)
+        response_content = response.choices[0].message
+        # print(response_content)
 
         # 记录请求和响应
         log_data = {
@@ -72,28 +97,42 @@ def get_object_location(image_base64: str, mime_type:str, object_description: st
         }
         log_to_file(log_data)
 
-        # 解析响应中的坐标
+       # 解析响应中的坐标
         try:
-            data = json.loads(response_content)
-            if  "error" in data:
-                return data["error"],None
-            x = int(data['x'])
-            y = int(data['y'])
-            return x, y
+            if response_content.function_call:
+                function_name = response_content.function_call.name
+                arguments = json.loads(response_content.function_call.arguments)
+                if function_name == "setPosition":
+                    x = int(arguments['x'])
+                    y = int(arguments['y'])
+                    return x, y
+                elif function_name == "error":
+                    return arguments['text'],None
+                else:
+                    return "call api error",None # 未知function
+            else: # 正常文本返回
+                return response_content.content,None
+
         except (json.JSONDecodeError, KeyError, ValueError):
             print("Error: Could not parse coordinates from the response.")
             log_to_file({
                 "error":"Error: Could not parse coordinates from the response."
             })
-            return (response_content,None)
+            return (response_content.content,None)
 
     except Exception as e:
         print(f"Error: {e}")
-        log_to_file({
-                "Exception":f"Error: {e}"
-            })
-        return ("call api error",None)
+        log_to_file({"Exception": f"Error: {e}"})
+        return ("call api error", None)
 
-if __name__ == '__main__':
-    get_object_location("",
-                        "image/jpeg","任务栏上的 Firefox 浏览器图标")
+
+if __name__ == "__main__":
+    # get_object_location("", "image/jpeg", "任务栏上的 Firefox 浏览器图标")
+    # 构造一个测试用的base64编码的图片数据（这里用一个空的base64字符串代替）
+    test_image_base64 = ""
+    # 测试对象描述
+    test_object_description = "任务栏上的 Firefox 浏览器图标"
+    # 调用函数
+    result = get_object_location(test_image_base64, "image/jpeg", test_object_description)
+    # 输出结果
+    print(result)

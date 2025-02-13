@@ -11,7 +11,7 @@ def index():
 @app.route('/capture_screen', methods=['GET'])
 def capture_screen():
     base64_str, mime_type, width, height, mouse_x, mouse_y = linux_automation.capture_fullscreen_jpg_base64()
-    description = f"截图分辨率: {width}x{height}, 鼠标指针坐标: ({mouse_x}, {mouse_y}), 鼠标指针为黑色三角形，三角形的上顶点是指针指向的点。"
+    description = f"截图分辨率: {width}x{height}, 鼠标指针坐标: ({mouse_x}, {mouse_y}), 鼠标指针为红色x的交叉点。"
     return jsonify({"data": base64_str, "mime_type": mime_type, "description": description})
 
 @app.route('/move_mouse_to', methods=['POST'])

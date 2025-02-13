@@ -5,6 +5,7 @@ import base64
 from io import BytesIO
 from PIL import ImageDraw, Image
 import subprocess
+import pyperclip
 class LinuxAutomation:
     def __init__(self):
         pass
@@ -17,16 +18,16 @@ class LinuxAutomation:
         mouse_x, mouse_y = pyautogui.position()
         draw = ImageDraw.Draw(screenshot)
         # draw.ellipse((mouse_x - 7, mouse_y - 7, mouse_x + 7, mouse_y + 7), fill='red')
-        # draw.line((mouse_x - 7, mouse_y - 7, mouse_x + 7, mouse_y + 7), fill='red', width=2)
-        # draw.line((mouse_x - 7, mouse_y + 7, mouse_x + 7, mouse_y - 7), fill='red', width=2)
+        draw.line((mouse_x - 5, mouse_y - 5, mouse_x + 5, mouse_y + 5), fill='red', width=2)
+        draw.line((mouse_x - 5, mouse_y + 5, mouse_x + 5, mouse_y - 5), fill='red', width=2)
 
-        # 绘制带白色边框的黑色三角形作为鼠标指针
-        pointer_size = 10
-        draw.polygon([
-            (mouse_x, mouse_y),
-            (mouse_x + pointer_size, mouse_y + pointer_size * 2),
-            (mouse_x - pointer_size, mouse_y + pointer_size * 2),
-        ], fill='black', outline='white')
+        # 绘制带白色边框的黄色三角形作为鼠标指针
+        # pointer_size = 10
+        # draw.polygon([
+        #     (mouse_x, mouse_y),
+        #     (mouse_x + pointer_size, mouse_y + pointer_size * 2),
+        #     (mouse_x - pointer_size, mouse_y + pointer_size * 2),
+        # ], fill='yellow', outline='white')
 
         img_byte_arr = BytesIO()
         screenshot.save(img_byte_arr, format='JPEG')
@@ -41,7 +42,7 @@ class LinuxAutomation:
         Helper function to capture screen and return relevant info.
         """
         base64_str, mime_type, width, height, mouse_x, mouse_y = self.capture_fullscreen_jpg_base64()
-        description = f"截图分辨率: {width}x{height}, 鼠标指针坐标: ({mouse_x}, {mouse_y}), 鼠标指针为黑色三角形，三角形的上顶点是指针指向的点。"
+        description = f"截图分辨率: {width}x{height}, 鼠标指针坐标: ({mouse_x}, {mouse_y}), 鼠标指针为红色x的交叉点。"
         return base64_str, mime_type, description
 
     def move_mouse_to(self, x, y):
@@ -57,6 +58,7 @@ class LinuxAutomation:
         模拟鼠标点击
         """
         pyautogui.click()
+        sleep(1)
         base64_str, mime_type, description = self._capture_and_get_info()
         return base64_str, mime_type, description, "鼠标是否点击成功？"
     
@@ -65,6 +67,7 @@ class LinuxAutomation:
         模拟鼠标点击
         """
         pyautogui.leftClick()
+        sleep(1)
         base64_str, mime_type, description = self._capture_and_get_info()
         return base64_str, mime_type, description, "鼠标是否左键点击成功？"
         
@@ -73,6 +76,7 @@ class LinuxAutomation:
         模拟鼠标点击
         """
         pyautogui.doubleClick()
+        sleep(1)
         base64_str, mime_type, description = self._capture_and_get_info()
         return base64_str, mime_type, description, "鼠标是否双击成功？"
 
@@ -81,6 +85,7 @@ class LinuxAutomation:
         模拟键盘输入一个key
         """
         pyautogui.press(key)
+        sleep(1)
         base64_str, mime_type, description = self._capture_and_get_info()
         return base64_str, mime_type, description, f"是否输入了键 {key}？"
 
@@ -89,6 +94,7 @@ class LinuxAutomation:
         模拟键盘输入一个组合key
         """
         pyautogui.hotkey(*keys)
+        sleep(1)
         base64_str, mime_type, description = self._capture_and_get_info()
         return base64_str, mime_type, description, f"是否输入了组合键 {', '.join(keys)}？"
 
@@ -96,7 +102,11 @@ class LinuxAutomation:
         """
         模拟键盘输入一个字符串
         """
-        pyautogui.typewrite(text)
+        if has_unsupported_chars(text):
+            pyperclip.copy(text)
+            pyautogui.hotkey('ctrl', 'v')
+        else:
+            pyautogui.typewrite(text)
         base64_str, mime_type, description = self._capture_and_get_info()
         return base64_str, mime_type, description, f"是否输入了字符串 '{text}'？"
 
@@ -120,6 +130,11 @@ class LinuxAutomation:
 
         sleep(1)  # 例如，主线程可以执行 5 秒的其他任务
         return "done"
+
+import re
+def has_unsupported_chars(text):
+  pattern = r'[^\x00-\x7F]+'  # 匹配非 ASCII 字符
+  return bool(re.search(pattern, text))
 
 def run_command(command):
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
