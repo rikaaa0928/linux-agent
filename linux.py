@@ -28,7 +28,8 @@ class LinuxAutomation:
         #     (mouse_x + pointer_size, mouse_y + pointer_size * 2),
         #     (mouse_x - pointer_size, mouse_y + pointer_size * 2),
         # ], fill='yellow', outline='white')
-
+        screenshot = screenshot.convert('RGB')
+        # rgb_im.save('audacious.jpg')
         img_byte_arr = BytesIO()
         screenshot.save(img_byte_arr, format='JPEG')
         img_byte_arr = img_byte_arr.getvalue()
@@ -150,7 +151,7 @@ if __name__ == '__main__':
     automation = LinuxAutomation()
 
     # 示例：全屏截图
-    base64_str, mime_type = automation.capture_fullscreen_jpg_base64()
+    base64_str, mime_type,_,_,_,_ = automation.capture_fullscreen_jpg_base64()
     print(f"截图 mimeType: {mime_type}")
     print(f"截图 base64 (前100字符): {base64_str[:100]}...")
 
