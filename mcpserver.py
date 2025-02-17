@@ -7,9 +7,11 @@ import asyncio
 import requests
 import os
 import llm
+import llm2
 
 app = Server("linux-agent")
 LINUX_SERVER_URL = "http://192.168.102.136:5001"
+
 
 @app.list_tools()
 async def handle_list_prompts() -> list[types.Tool]:
@@ -25,7 +27,8 @@ async def handle_list_prompts() -> list[types.Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "object_description": {"type": "string", "description": "图像中对象的描述。必须是一个明确，准确且唯一的位置描述，不能有任何可能在识别过程中造成歧义的内容"},
+                    "object_description": {"type": "string",
+                                           "description": "图像中对象的描述。必须是一个明确，准确且唯一的位置描述，不能有任何可能在识别过程中造成歧义的内容"},
                 },
                 "required": ["object_description"]
             }
@@ -36,7 +39,8 @@ async def handle_list_prompts() -> list[types.Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "object_description": {"type": "string", "description": "图像中对象的描述。必须是一个明确，准确且唯一的位置描述，不能有任何可能在识别过程中造成歧义的内容"},
+                    "object_description": {"type": "string",
+                                           "description": "图像中对象的描述。必须是一个明确，准确且唯一的位置描述，不能有任何可能在识别过程中造成歧义的内容"},
                 },
                 "required": ["object_description"]
             }
@@ -47,7 +51,8 @@ async def handle_list_prompts() -> list[types.Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "object_description": {"type": "string", "description": "图像中对象的描述。必须是一个明确，准确且唯一的位置描述，不能有任何可能在识别过程中造成歧义的内容"},
+                    "object_description": {"type": "string",
+                                           "description": "图像中对象的描述。必须是一个明确，准确且唯一的位置描述，不能有任何可能在识别过程中造成歧义的内容"},
                 },
                 "required": ["object_description"]
             }
@@ -89,17 +94,17 @@ async def handle_list_prompts() -> list[types.Tool]:
                 "required": ["text"]
             }
         ),
-         types.Tool(
-                name="execute_command",
-                description="执行控制台命令并返回所有标准输出和标准错误",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "command": {"type": "string", "description": "要执行的命令"},
-                    },
-                    "required": ["command"]
-                }
-            ),
+        types.Tool(
+            name="execute_command",
+            description="执行控制台命令并返回所有标准输出和标准错误",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "要执行的命令"},
+                },
+                "required": ["command"]
+            }
+        ),
         types.Tool(
             name="execute_command_non_blocking",
             description="执行控制台命令但不等待并返回输出",
@@ -111,7 +116,7 @@ async def handle_list_prompts() -> list[types.Tool]:
                 "required": ["command"]
             }
         ),
-         types.Tool(
+        types.Tool(
             name="wait",
             description="等待一段时间",
             inputSchema={
@@ -124,8 +129,10 @@ async def handle_list_prompts() -> list[types.Tool]:
         )
     ]
 
+
 @app.call_tool()
-async def call_tool(name: str, arguments: dict) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+async def call_tool(name: str, arguments: dict) -> list[
+    types.TextContent | types.ImageContent | types.EmbeddedResource]:
     if name == "capture_screen":
         response = requests.get(f"{LINUX_SERVER_URL}/capture_screen")
         response.raise_for_status()
@@ -151,14 +158,15 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
         capture_data = capture_response.json()
         base64_str = capture_data["data"]
         mime_type = capture_data["mime_type"]
-        x, y = llm.get_object_location(base64_str, mime_type, object_description)
+        # x, y = llm.get_object_location(base64_str, mime_type, object_description)
+        x, y = llm2.get_object_location(LINUX_SERVER_URL, object_description)
         if x is not None and y is not None:
             requests.post(f"{LINUX_SERVER_URL}/move_mouse_to", json={"x": x, "y": y})
         elif x is not None:
             return [
                 types.TextContent(type="text", text=x),
             ]
-        
+
         response = requests.get(f"{LINUX_SERVER_URL}/mouse_click", params={"object_description": object_description})
         response.raise_for_status()
         data = response.json()
@@ -174,7 +182,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
         capture_data = capture_response.json()
         base64_str = capture_data["data"]
         mime_type = capture_data["mime_type"]
-        x, y = llm.get_object_location(base64_str, mime_type, object_description)
+        # x, y = llm.get_object_location(base64_str, mime_type, object_description)
+        x, y = llm2.get_object_location(LINUX_SERVER_URL, object_description)
         if x is not None and y is not None:
             requests.post(f"{LINUX_SERVER_URL}/move_mouse_to", json={"x": x, "y": y})
         elif x is not None:
@@ -182,7 +191,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
                 types.TextContent(type="text", text=x),
             ]
 
-        response = requests.get(f"{LINUX_SERVER_URL}/mouse_leftClick", params={"object_description": object_description})
+        response = requests.get(f"{LINUX_SERVER_URL}/mouse_leftClick",
+                                params={"object_description": object_description})
         response.raise_for_status()
         data = response.json()
         return [
@@ -197,7 +207,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
         capture_data = capture_response.json()
         base64_str = capture_data["data"]
         mime_type = capture_data["mime_type"]
-        x, y = llm.get_object_location(base64_str, mime_type, object_description)
+        # x, y = llm.get_object_location(base64_str, mime_type, object_description)
+        x, y = llm2.get_object_location(LINUX_SERVER_URL, object_description)
         if x is not None and y is not None:
             requests.post(f"{LINUX_SERVER_URL}/move_mouse_to", json={"x": x, "y": y})
         elif x is not None:
@@ -205,7 +216,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
                 types.TextContent(type="text", text=x),
             ]
 
-        response = requests.get(f"{LINUX_SERVER_URL}/mouse_doubleClick", params={"object_description": object_description})
+        response = requests.get(f"{LINUX_SERVER_URL}/mouse_doubleClick",
+                                params={"object_description": object_description})
         response.raise_for_status()
         data = response.json()
         return [
@@ -284,6 +296,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent | type
     else:
         raise ValueError(f"Tool not found: {name}")
 
+
 async def run():
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
         await app.run(
@@ -298,6 +311,7 @@ async def run():
                 )
             )
         )
+
 
 if __name__ == "__main__":
     asyncio.run(run())
