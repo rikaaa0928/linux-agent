@@ -32,8 +32,8 @@ class LinuxAutomation:
                     draw.text((x + 5, y + 5), str(grid_count), fill='yellow', font=font)
                     grid_count += 1
 
-            draw.line((mouse_x - 5, mouse_y - 5, mouse_x + 5, mouse_y + 5), fill='blue', width=2)
-            draw.line((mouse_x - 5, mouse_y + 5, mouse_x + 5, mouse_y - 5), fill='blue', width=2)
+            # draw.line((mouse_x - 5, mouse_y - 5, mouse_x + 5, mouse_y + 5), fill='blue', width=2)
+            # draw.line((mouse_x - 5, mouse_y + 5, mouse_x + 5, mouse_y - 5), fill='blue', width=2)
         else:
             # draw.ellipse((mouse_x - 7, mouse_y - 7, mouse_x + 7, mouse_y + 7), fill='red')
             draw.line((mouse_x - 5, mouse_y - 5, mouse_x + 5, mouse_y + 5), fill='red', width=2)
