@@ -6,11 +6,12 @@ import mcp.types as types
 import asyncio
 import requests
 import os
-import llm
+#import llm
 import llm2
 
 app = Server("linux-agent")
-LINUX_SERVER_URL = "http://192.168.102.136:5001"
+LINUX_SERVER_URL = os.getenv("LINUX_SERVER_URL")
+# LINUX_SERVER_URL = "http://192.168.102.136:5001"
 
 
 @app.list_tools()
