@@ -1,4 +1,5 @@
 import io
+import math
 import os
 
 import requests
@@ -37,8 +38,8 @@ def capture_grid_jpg_base64(LINUX_SERVER_URL: str, grid_number: int):
 
 
 def get_point(grid_number: int, width: int, height: int, select: int):
-    x = (grid_number // (height // grid_size)) * grid_size
-    y = (grid_number % (height // grid_size)) * grid_size
+    x = (grid_number // (math.ceil(height / grid_size))) * grid_size
+    y = (grid_number % (math.ceil(height / grid_size))) * grid_size
     fromx = x - grid_size
     fromy = y - grid_size
     tox = x + 2 * grid_size
